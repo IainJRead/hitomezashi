@@ -26,13 +26,13 @@ import math
 class hitomezashi(object):
     
     def __init__(self,
-                 dName,
-                 logic='set',
+                 hName,
+                 logic='rand',
                  **kwargs):
 
         
         # Attach attributes
-        self.dName = dName
+        self.hName = hName
         self.logic = logic
         
         # Set up default drawing offsets
@@ -121,6 +121,9 @@ class hitomezashi(object):
                 'shape':'rectangle',
                 'slope': (0, 0),
                 'lineWidth': 1,
+                'rowStarts': None,
+                'colStarts': None,
+                'thresh': None,
                 }
             # Scan through kwargs and populate any missing arguments
             for key, value in defaultDict.items():
@@ -137,6 +140,10 @@ class hitomezashi(object):
                                             shape = kwargs['shape'],
                                             slope = kwargs['slope'],
                                             lineWidth = kwargs['lineWidth'],
+                                            colStarts = kwargs['colStarts'],
+                                            rowStarts = kwargs['rowStarts'],
+                                            logic = kwargs['logic'],
+                                            thresh = kwargs['thresh'],
                                             )
             self._createCanvas_()
         
@@ -539,8 +546,6 @@ class stitch_block(object):
                  slope=(0, 0),
                  lineWidth=1,
                  logic='pattern',
-                 rowStarts = None,
-                 colStarts = None,
                  **kwargs):
         """
         Object to describe a functional block of identical pixels, forming a
@@ -590,13 +595,24 @@ class stitch_block(object):
         self.slope = slope
         self.lineWidth = lineWidth
         self.logic = logic
-        self.rowStarts = rowStarts
-        self.colStarts = colStarts
+        
+        # Defaults
+        defaultDict = {
+            'rowStarts': None,
+            'colStarts': None,
+            'thresh': None,
+            }
+        # Scan through kwargs and populate any missing arguments
+        for key, value in defaultDict.items():
+            if key not in kwargs.keys():
+                kwargs[key] = value
         
         # Start with an empty array of pixels
         self.clearMask()
         
         self.__dict__.update((k, v) for k, v in kwargs.items())
+        
+        self._setStartStates_()
         
     def clearMask(self):
         """
@@ -613,20 +629,22 @@ class stitch_block(object):
             self.mask[i] = [(0, 0, 0) for i in range(self.grid[1])]
     
     def _setStartStates_(self):
+        
+        print(f'logic is {self.logic}')
                 
         if self.logic == 'pattern':
-            if self.rowStarts != None and self.colStarts != None:
+            if self.rowStarts is not None and self.colStarts is not None:
                 pass
             else:
                 raise ValueError('No pattern provided')
         elif self.logic == 'alternate':
-            if self.firstStates != None:
+            if self.firstStates is not None:
                 self.colStarts = [(i + self.firstStates[0])%2 for i in range(self.grid[0])]
                 self.rowStarts = [(i + self.firstStates[1])%2 for i in range(self.grid[1])]
             else:
                 raise ValueError('No first states provided')
         elif self.logic == 'rand':
-            if self.probs != None:
+            if self.thresh is not None:
                 randomNums = np.random.uniform(low=0, high=100, size=self.grid[0])
                 self.colStarts = [math.floor(elem/self.thresh[0]) for elem in randomNums]
                 randomNums = np.random.uniform(low=0, high=100, size=self.grid[1])
